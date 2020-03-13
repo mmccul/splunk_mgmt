@@ -43,6 +43,8 @@ while read oldrev newrev refname; do
       # *.zip|*.gz|*.tgz )
       *alert_actions.conf|*app.conf|*audit.conf|*authentication.conf|*authorize.conf|*checklist.conf|*commands.conf|*deployment.conf|*deploymentclient.conf|*distsearch.conf|*federated.conf|*health.conf|*indexes.conf|*inputs.conf|*instance.cfg.conf|*limits.conf|*outputs.conf|*restmap.conf|*server.conf|*serverclass.conf|*setup.xml.conf|*splunk-launch.conf|*times.conf|*web.conf )
         printf "No admin files are allowed to be submitted to this repo.  Undo your commit and remove\nthose files and try again.  If you really can't figure this out, contact your Splunk admin.\n"
+         exit 1
+         ;;
        *passwords.conf )
          printf "Passwords, even encrypted, are not allowed to be submitted to git.  Undo your commit and\ntry again.\n"
         exit 1
