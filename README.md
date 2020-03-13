@@ -25,6 +25,10 @@ I typically use a perms_user that approximates the user role, but has no index a
 
 How to do this?  Take every single capability from the docs and run through this and ask yourself, is this something that should be allowed or does it encourage changes in the GUI instead of checking the changes into git?  
 
+## Index access
+
+To enable access to indexes, I create dedicated roles that do not inherit anything, just authorize one or more indexes.  Since an individual can be a member of multiple roles, the permissions are additive, it is easier to manage and works well with an AD or LDAP or SAML integrated system.
+
 # Maintenance
 
 One thing that turned out to be key to the success of this methodology is periodically looking
