@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+######################################################################
+# A forced command to trigger git pull and automatic syntax checks
+#
+# Usage:
+#   install this as a forced command for the splunk account (because
+#   of course you don't run Splunk as root, RIGHT?).
+######################################################################
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+# Adjust these variables as appropriate
+SPLUNK_HOME=/opt/splunk
+SPLUNKURL="https://splunk.example.com:8000/"
+LANGUAGE="en-US"
+SPLUNKBINDIR=${SPLUNK_HOME}/bin
+
+PATH=${PATH}:${SPLUNKBINDIR}
+
+fatal () {
+   MSG=$1
+   printf "%s\n" "${MSG}"
+   exit 1
+}
+
+SPLUNKBIN=$(which splunk 2>/dev/null)
+REPO=${SSH_ORIGINAL_COMMAND}
+
+if [ -z "${SPLUNKBIN}" ]; then
+    fatal "Cannot locate splunk binaries"
+fi
+
+if [ -z "${REPO}" ]; then
+    fatal "No app specified to pull"
+fi
+
+# Strip out some bad stuff from repo names
+REPO=${REPO%% *}
+REPO=${REPO##*/}
+REPO=${REPO%%;*}
+
+if [ ! -d ${SPLUNK_HOME}/etc/apps/${REPO} ]; then
+    fatal "No such app %s" ${REPO}
+fi
+
+OLDCHECKERR="$(splunk btool check)"
+
+if [ -n "${OLDCHECKERR}" ]; then
+    printf "Previously existing check errors, continuing\n"
+fi
+
+cd ${SPLUNK_HOME}/etc/apps/${REPO} || fatal "Cannot enter directory ${SPLUNK_HOME}/etc/apps/${REPO}"
+# Uncaught exceptions, but it is printed to the screen so do not panic too much
+git pull
+RET=$?
+
+NEWCHECKERR="$(splunk btool check)"
+
+if [ -n "${NEWCHECKERR}" ]; then
+    if [ "${OLDCHECKERR}" = "${NEWCHECKERR}" ]; then
+        printf "No new errors, but syntax errors still exist.\n%s\n:-|\n" "${NEWCHECKERR}"
+    elif [ -z "${OLDCHECKERR}" ]; then
+        printf "You broke a perfectly usable Splunk config.  Fix it.\n%s\n:-(\n" "${NEWCHECKERR}"
+    else
+        printf "Well, it was broke before, it is broken differently now.  Still not good.\n%s\n:-(\n" "${NEWCHECKERR}"
+    fi
+elif [ ${RET} != 0 ]; then
+    printf "git pull failed.\n:-(\n"
+else
+    printf "All worked.  Hit the debug refresh endpoint to activate your changes\n%s\n:-)\n" "${SPLUNKURL}/${LANGUAGE}/debug/refresh"
+fi
+
