@@ -19,13 +19,39 @@ Make separate repos for administrative configuration that have no write access t
 
 # Authorization
 
-Key to this model is a very extensive authorize.conf  Do not assign the default roles (user, power, admin) to anyone.  Define a new set of roles to approximate what you need.
+## SHC
+
+To make this work with a search head cluster, there's a bit more work to be done, but it works even better there.
+
+Create a custom capability and role for that capability.  In authorize.conf:
+
+```
+[capability::deployer_capability]
+[role_deployer]
+deployer_capability = enabled
+```
+
+In restmap.conf:
+
+```
+[apps-deploy:apps-deploy]
+capability.post=deployer_capability
+```
+
+Now assign the new role to a local account.  Yes, it's a local account, even if you use SAML.  That's because you're going to assign a token to that account.  Create the token.
+
+Now, you're ready.  The forcecommand can be modified to use the token for authentication and execute the `splunk apply shcluster-bundle` command.
+
+## Everything else
+
+For regular users, you need a very extensive authorize.conf  Do not assign the default roles (user, power, admin) to anyone.  Define a new set of roles to approximate what you need.
 
 I typically use a perms_user that approximates the user role, but has no index access.  A separate role enables dashboard edits and creation of saved searches -- but is only deployed to the development search head so people can use the GUI to create saved searches.  (Others may not be that gentle).  Similarly, permissions related to dashboard creation and editing, etc. are all disabled on production.  Even the perms_admin role, do not enable making changes via GUI for the most part.  They need to make changes by config file.  
 
 How to do this?  Take every single capability from the docs and run through this and ask yourself, is this something that should be allowed or does it encourage changes in the GUI instead of checking the changes into git?  
 
 An example might be:
+
 ```
 [role_perms_user]
 export_results_is_visible = enabled
