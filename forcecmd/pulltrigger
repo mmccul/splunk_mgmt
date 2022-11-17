@@ -15,6 +15,7 @@ SPLUNK_HOME=/opt/splunk
 SPLUNKURL="https://splunk.example.com:8000/"
 LANGUAGE="en-US"
 SPLUNKBINDIR=${SPLUNK_HOME}/bin
+# TOKEN="insert_token_here"
 
 PATH=${PATH}:${SPLUNKBINDIR}
 
@@ -55,6 +56,10 @@ cd ${SPLUNK_HOME}/etc/apps/${REPO} || fatal "Cannot enter directory ${SPLUNK_HOM
 git pull
 RET=$?
 
+####
+# TODO
+# Update to do a btool check with the basedir parameter to run inside the shcluster
+# Requires recreating the README structure with the spec files, and the conf files are in apps, not in the shcluster base dir
 NEWCHECKERR="$(splunk btool check)"
 
 if [ -n "${NEWCHECKERR}" ]; then
@@ -68,6 +73,8 @@ if [ -n "${NEWCHECKERR}" ]; then
 elif [ ${RET} != 0 ]; then
     printf "git pull failed.\n:-(\n"
 else
+    # In a SHC, don't just tell people it worked, run
+    # splunk apply shcluster-bundle -token $TOKEN
     printf "All worked.  Hit the debug refresh endpoint to activate your changes\n%s\n:-)\n" "${SPLUNKURL}/${LANGUAGE}/debug/refresh"
 fi
 
