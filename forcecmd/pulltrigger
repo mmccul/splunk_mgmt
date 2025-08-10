@@ -6,6 +6,16 @@
 # Usage:
 #   install this as a forced command for the splunk account (because
 #   of course you don't run Splunk as root, RIGHT?).
+#
+# Installation:
+#   Adjust the SPLUNK_HOME, SPLUNKURL and LANGUAGE variables for your
+#   site, then uncomment and set the TOKEN variable.  Then install
+#   per the directions.
+#
+#   If not running against a search head cluster, then comment out
+#   the SHC, SHCURL, and SHCDIR variables.
+#
+#   If you are running a SHC, don't forget to update the SHCURL.
 ######################################################################
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
@@ -15,7 +25,10 @@ SPLUNK_HOME=/opt/splunk
 SPLUNKURL="https://splunk.example.com:8000/"
 LANGUAGE="en-US"
 SPLUNKBINDIR=${SPLUNK_HOME}/bin
-# TOKEN="insert_token_here"
+SHC="shcluster/"
+SHCDIR="--dir=${SPLUNK_HOME}/etc/shcluster"
+SHCURL="https://myshcmember.example.com:8089/"
+# TOKEN="-token insert_token_here"
 
 PATH=${PATH}:${SPLUNKBINDIR}
 
@@ -26,6 +39,10 @@ fatal () {
 }
 
 SPLUNKBIN=$(which splunk 2>/dev/null)
+if [ -z "${SPLUNKBIN}" ]; then
+    SPLUNKBIN=$(which ${SPLUNBINDIR}/splunk 2>/dev/null)
+fi
+
 REPO=${SSH_ORIGINAL_COMMAND}
 
 if [ -z "${SPLUNKBIN}" ]; then
@@ -41,17 +58,17 @@ REPO=${REPO%% *}
 REPO=${REPO##*/}
 REPO=${REPO%%;*}
 
-if [ ! -d ${SPLUNK_HOME}/etc/apps/${REPO} ]; then
+if [ ! -d ${SPLUNK_HOME}/etc/${SHC}apps/${REPO} ]; then
     fatal "No such app %s" ${REPO}
 fi
 
-OLDCHECKERR="$(splunk btool check)"
+OLDCHECKERR="$(${SPLUNKBIN} btool ${SHCDIR} check)"
 
 if [ -n "${OLDCHECKERR}" ]; then
     printf "Previously existing check errors, continuing\n"
 fi
 
-cd ${SPLUNK_HOME}/etc/apps/${REPO} || fatal "Cannot enter directory ${SPLUNK_HOME}/etc/apps/${REPO}"
+cd ${SPLUNK_HOME}/etc/${SHC}apps/${REPO} || fatal "Cannot enter directory ${SPLUNK_HOME}/etc/${SHC}apps/${REPO}"
 # Uncaught exceptions, but it is printed to the screen so do not panic too much
 git pull
 RET=$?
@@ -60,7 +77,7 @@ RET=$?
 # TODO
 # Update to do a btool check with the basedir parameter to run inside the shcluster
 # Requires recreating the README structure with the spec files, and the conf files are in apps, not in the shcluster base dir
-NEWCHECKERR="$(splunk btool check)"
+NEWCHECKERR="$(splunk btool ${SHCDIR} check)"
 
 if [ -n "${NEWCHECKERR}" ]; then
     if [ "${OLDCHECKERR}" = "${NEWCHECKERR}" ]; then
@@ -75,6 +92,10 @@ elif [ ${RET} != 0 ]; then
 else
     # In a SHC, don't just tell people it worked, run
     # splunk apply shcluster-bundle -token $TOKEN
-    printf "All worked.  Hit the debug refresh endpoint to activate your changes\n%s\n:-)\n" "${SPLUNKURL}/${LANGUAGE}/debug/refresh"
+    if [ -z "${SHC}" ]; then
+        printf "All worked.  Hit the debug refresh endpoint to activate your changes\n%s\n:-)\n" "${SPLUNKURL}/${LANGUAGE}/debug/refresh"
+    else
+        ${SPLUNKBIN} apply shcluster-bundle --target=${SHCURL} ${TOKEN}
+    fi
 fi
 
