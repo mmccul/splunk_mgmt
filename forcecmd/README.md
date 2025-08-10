@@ -1,3 +1,9 @@
+# CAUTION
+
+Red Hat broke SSH forced commands, allowing someone to use sftp to overwrite the authorized_keys file, even if that isn't
+supposed to be permitted by their authorized_keys contents.  This method is no longer safe on RHEL until that
+vulnerability is fixed.
+
 # Installation
 
 Install this script into a common location and make it executable, e.g.
