@@ -40,6 +40,24 @@ capability.post=deployer_capability
 
 Now assign the new role to a local account.  Yes, it's a local account, even if you use SAML.  That's because you're going to assign a token to that account.  Create the token.
 
+On a SHC, a pre-step is to copy the README/*.spec to a directory structure that encompasses the SHC directories on the SD.
+As user splunk on the SD:
+
+```
+cd /opt/splunk/etc
+cp -rp README shcluster/.
+```
+
+Now, you can use btool to check the syntax again by passing the `--dir` flag.  The default is **$SPLUNK_HOME/etc**,
+but you can now use something like `--dir=/opt/splunk/etc/shcluster` to specify where to use the SPEC files.  It
+will see your **apps** directory inside that and run the btool check on it.  Again, on the SD as user splunk:
+
+```
+/opt/splunk/btool check --dir=/opt/splunk/etc/shcluster
+```
+
+Fix any errors before deployment.
+
 Now, you're ready.  The forcecommand can be modified to use the token for authentication and execute the `splunk apply shcluster-bundle` command.
 
 ## Everything else
